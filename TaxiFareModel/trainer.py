@@ -90,15 +90,15 @@ if __name__ == "__main__":
     trainer = Trainer(X_train,y_train)
     trainer.set_pipeline()
     trainer.run()
-    print(trainer.evaluate(X_test, y_test))
+    rmse = trainer.evaluate(X_test, y_test)
     yourname = "yassingofti"
 
     if yourname is None:
         print("please define your name, il will be used as a parameter to log")
 
-    for model in ["linear", "Randomforest"]:
-        client = trainer.mlflow_client
-        run = client.create_run(trainer.mlflow_experiment_id)
-        client.log_metric(run.info.run_id, "rmse", 4.5)
+    for model in ["linear"]:
+        client = trainer.mlflow_client()
+        run = client.create_run(trainer.mlflow_experiment_id())
+        client.log_metric(run.info.run_id, "rmse", rmse)
         client.log_param(run.info.run_id, "model", model)
         client.log_param(run.info.run_id, "student_name", yourname)
