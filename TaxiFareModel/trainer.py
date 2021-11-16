@@ -22,7 +22,8 @@ class Trainer():
         self.pipeline = None
         self.X = X
         self.y = y
-        self.experiment_name = "[FR] [Paris] [yassingofti] taxifare v1"
+        self.experiment_name = "[FR] [Paris] [yassingofti] taxifare v3"
+        self.client = None
 
     def set_pipeline(self):
         """defines the pipeline as a class attribute"""
@@ -60,6 +61,7 @@ class Trainer():
     def mlflow_client(self):
         mlflow.set_tracking_uri("https://mlflow.lewagon.co/")
         return MlflowClient()
+
     @memoized_property
     def mlflow_experiment_id(self):
         try:
@@ -95,10 +97,7 @@ if __name__ == "__main__":
 
     if yourname is None:
         print("please define your name, il will be used as a parameter to log")
-
     for model in ["linear"]:
-        client = trainer.mlflow_client()
-        run = client.create_run(trainer.mlflow_experiment_id())
-        client.log_metric(run.info.run_id, "rmse", rmse)
-        client.log_param(run.info.run_id, "model", model)
-        client.log_param(run.info.run_id, "student_name", yourname)
+        trainer.mlflow_log_metric('rmse',rmse)
+        trainer.mlflow_log_param('model',model)
+        trainer.mlflow_log_param('student_name', yourname)
