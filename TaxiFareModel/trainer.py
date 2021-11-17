@@ -11,6 +11,11 @@ from TaxiFareModel.utils import compute_rmse
 import mlflow
 from mlflow.tracking import MlflowClient
 from memoized_property import memoized_property
+import joblib
+from sklearn.metrics import make_scorer,mean_squared_error
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.ensemble import GradientBoostingRegressor
+from scipy import stats
 
 
 class Trainer():
@@ -41,7 +46,7 @@ class Trainer():
         ], remainder="drop")
         pipe = Pipeline([
             ('preproc', preproc_pipe),
-            ('linear_model', LinearRegression())
+            ('gradientboostingregressor', GradientBoostingRegressor())
         ])
         self.pipeline = pipe
         return pipe
@@ -79,7 +84,27 @@ class Trainer():
     def mlflow_log_metric(self, key, value):
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
-
+    def save_model(self):
+        joblib.dump(self.pipeline, 'model.pipeline.trained')
+        return self
+    def search(self):
+        rmse = make_scorer(mean_squared_error,squared=False)
+        # Hyperparameter search space
+        grid = {
+            'gradientboostingregressor__learning_rate':
+            stats.uniform(0.001, 1),
+            'gradientboostingregressor__alpha': stats.uniform(0.001, 1)
+        }
+        # Instanciate Random Search
+        search = RandomizedSearchCV(
+            self.pipeline,
+            grid,
+            scoring=rmse,
+            n_iter=500,
+            cv=5,
+            n_jobs=-1,
+            refit=True,verbose=2)
+        return search
 
 if __name__ == "__main__":
 
@@ -91,13 +116,20 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.15)
     trainer = Trainer(X_train,y_train)
     trainer.set_pipeline()
-    trainer.run()
-    rmse = trainer.evaluate(X_test, y_test)
-    yourname = "yassingofti"
-
-    if yourname is None:
-        print("please define your name, il will be used as a parameter to log")
-    for model in ["linear"]:
-        trainer.mlflow_log_metric('rmse',rmse)
-        trainer.mlflow_log_param('model',model)
-        trainer.mlflow_log_param('student_name', yourname)
+    # trainer.run()
+    # rmse = trainer.evaluate(X_test, y_test)
+    # yourname = "yassingofti"
+    # trainer.save_model()
+    # if yourname is None:
+    #     print("please define your name, il will be used as a parameter to log")
+    # for model in ["linear"]:
+    #     trainer.mlflow_log_metric('rmse',rmse)
+    #     trainer.mlflow_log_param('model',model)
+    #     trainer.mlflow_log_param('student_name', yourname)
+    search = trainer.search()
+    print("Loading search be patient ;)")
+    search.fit(X_train,y_train)
+    print(search.best_score_)
+    print(search.best_params_)
+    #loguniform {'gradientboostingregressor__alpha': 0.004873974616858592, 'gradientboostingregressor__learning_rate': 0.0100085695809049}
+    #uniform
